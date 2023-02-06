@@ -1,6 +1,6 @@
 # Alpha diversity of microbial communities across earth, human and fermented food ecosystems 
 
-In ecology, alpha diversity refers to richness (number of species) and evenness (frequency of occurrence of each type of species) in an ecosystem. Biodiversity loss and mass extinction of species are two ecology challenges affecting human health and the environements. Therefore, this repository is aimed to evaluate the alpha diversity of the microbial community in various metrics across different ecosystems with R packages and statistical analysis. 
+In ecology, alpha diversity refers to richness (number of species) and evenness (frequency of occurrence of each type of species) in an ecosystem. Biodiversity loss and mass extinction of species, in both macro- and micro ecosystems, are two challenges affecting human health and the environements. Therefore, this repository is aimed to evaluate the alpha diversity of the microbial community in various metrics across different ecosystems with R packages and statistical analysis. 
 
 The repository covers four sub-tasks:
 
