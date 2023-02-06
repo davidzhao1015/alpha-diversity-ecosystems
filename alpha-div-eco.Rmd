@@ -86,19 +86,15 @@ knitr::opts_chunk$set(fig.align = 'center',
                       message=FALSE) #stop render when error occurs   
 ```
 
+## Problem
 
-## Problem 
+## Solution
 
+## Project outline
 
-## Solution 
+## R codes
 
-
-## Project outline 
-
-
-## R codes 
-
-### Load necessary libraries 
+### Load necessary libraries
 
 ```{r library, warning=FALSE, collapse=TRUE}
 
@@ -110,17 +106,21 @@ library(vegan)
 
 ```
 
-### Import metagenomic 16S sequence data and metadata 
+### Import metagenomic 16S sequence data and metadata
 
-Human microbiome project (HMP) 16S rRNA gene diversity: examines the diversity of 16S RNA genes in the human microbiome for the human microbiome project (HMP) 
+Human microbiome project (HMP) 16S rRNA gene diversity: examines the
+diversity of 16S RNA genes in the human microbiome for the human
+microbiome project (HMP)[@aframew2012]
 
-- Cohort: Center "Healthy Cohort"
-- Data type: 16S metagenomic sequence - NCBI Bioproject ID: 48489 
-- 300 human subjects, up to 3 time points, 5 body sites
-- Metadata: Unique subject ID, body site, sex and visit number which are accessible via [the HMP metadata catalog](https://hmpdacc.org/hmp/catalog/grid.php?dataset=metagenomic)    
+-   Cohort: Center "Healthy Cohort"
+-   Data type: 16S metagenomic sequence - NCBI Bioproject ID: 48489
+-   300 human subjects, up to 3 time points, 5 body sites
+-   Metadata: Unique subject ID, body site, sex and visit number which
+    are accessible via [the HMP metadata
+    catalog](https://hmpdacc.org/hmp/catalog/grid.php?dataset=metagenomic)
 
-
-Download Qiime-processed OTU table (v3-5) and phylogenetic trees (v3-5) from the [website](https://hmpdacc.org/hmp/HMQCP/#data).  
+Download Qiime-processed OTU table (v3-5) and phylogenetic trees (v3-5)
+from the [website](https://hmpdacc.org/hmp/HMQCP/#data).
 
 ```{r import HMP dataset}
 
@@ -141,22 +141,3 @@ head(otu_v35_final_hmp)
 
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
