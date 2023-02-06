@@ -1,4 +1,4 @@
-# Alpha diversity of microbiome across differenet ecosystems 
+# Alpha diversity of microbial community at differenet ecosystems 
 
 This repository is aimed to evaluate alpha diversity of microbial community in various metrics across different ecosystems with R packages. 
 
