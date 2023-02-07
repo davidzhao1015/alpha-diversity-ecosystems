@@ -102,6 +102,7 @@ knitr::opts_chunk$set(fig.align = 'center',
 
 library(tidyverse) 
 library(vegan)
+library(phyloseq) # import and process qimme output files 
 
 
 ```
@@ -132,12 +133,68 @@ otu_v35_hmp <- read.delim(gzfile("C:/Users/17803/Documents/RStuodio-link-GitHub/
 head(otu_v35_hmp)
 
 
-# final OTU table after removing mislabeling and contamination 
+
+# unzip the final OTU table after removing mislabeling and contamination 
 otu_v35_final_hmp <- read.delim(gzfile("./otu_table_psn_v35.txt.gz"),
                                 header = FALSE)  # whether the first line describe the column names 
 
 
-head(otu_v35_final_hmp) 
+head(otu_v35_final_hmp[,ncol(otu_v35_final_hmp)]) 
+
+```
+
+
+Read in the Qiime-output phylogenetic tree object using `phyloseq` R package. Follow the instruction in the section, `4.5 Import from QIIME Legacy` in the [vignette](https://www.bioconductor.org/packages/release/bioc/vignettes/phyloseq/inst/doc/phyloseq-basics.html#load-phyloseq).
+
+
+
+```{r phylogenetic tree}
+
+# otu table file 
+otu_hmp_phylo <- gzfile("./otu_table_psn_v35.txt.gz") 
+
+# phylogenetic tree file 
+ph.tree_hmp_phylo <- gzfile("./rep_set_v35.tre.gz") 
+
+
+# import both files with phyloseq package 
+import_qiime(otufilename = otu_hmp_phylo,
+             treefilename = ph.tree_hmp_phylo)
+
+```
+
+
+Mapping file (16S variable region v35) was accessible from this [website](https://hmpdacc.org/hmp/resources/metagenomics_sequencing_analysis.php)
+
+```{r metadata}
+
+mapping_hmp <- read.delim(file = "https://hmpdacc.org/hmp/doc/ppAll_V35_map.txt",
+                          stringsAsFactors = FALSE,
+                          header = F,
+                          na.strings = NA)  
+
+head(mapping_hmp)
+
+colnames(mapping_hmp) <- mapping_hmp[1, ]  # set column names 
+
+mapping_hmp2 <- mapping_hmp %>% 
+        rename(HMPBodySubsite = HMPBodySubsiteHMPBodySite) %>% 
+        rename(HMPBodySite = VisitNo) %>% 
+        rename(VisitNo = ncol(.)) %>% 
+        filter(!row_number() %in% c(1)) # remove the first row 
+
+# view the final table 
+mapping_hmp2
+
 
 
 ```
+Explain key column names ... 
+
+
+
+
+
+
+
+
