@@ -148,8 +148,7 @@ Read in the Qiime-output phylogenetic tree object using `phyloseq` R package. Fo
 
 
 
-
-```{r phylogenetic tree}
+```{r phylogenetic tree, warning=FALSE}
 
 # view the instruction of phyloseq package 
 # vignette("phyloseq_analysis")
