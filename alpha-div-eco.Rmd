@@ -148,8 +148,13 @@ Read in the Qiime-output phylogenetic tree object using `phyloseq` R package. Fo
 
 
 
+
 ```{r phylogenetic tree}
 
+# view the instruction of phyloseq package 
+# vignette("phyloseq_analysis")
+
+ 
 # otu table file 
 otu_hmp_phylo <- gzfile("./otu_table_psn_v35.txt.gz") 
 
@@ -158,40 +163,84 @@ ph.tree_hmp_phylo <- gzfile("./rep_set_v35.tre.gz")
 
 
 # import both files with phyloseq package 
-import_qiime(otufilename = otu_hmp_phylo,
-             treefilename = ph.tree_hmp_phylo)
+hmp_phyloseq <- import_qiime(otufilename = otu_hmp_phylo,
+                             treefilename = ph.tree_hmp_phylo)
+
+hmp_phyloseq  # phylogenetic object 
+
 
 ```
+Now the resulting phyloseq-class object contains an `OTU-table`, `taxomony table` and `phylogenetic tree`.  
 
 
-Mapping file (16S variable region v35) was accessible from this [website](https://hmpdacc.org/hmp/resources/metagenomics_sequencing_analysis.php)
+Mapping file (16S variable region v35) was accessible from this [website](https://hmpdacc.org/hmp/resources/metagenomics_sequencing_analysis.php).
+
+Convert the imported mapping file to phyloseq class `sample data` using `import_qiime_sample_data()` function of phyloseq package. 
+
 
 ```{r metadata}
 
-mapping_hmp <- read.delim(file = "https://hmpdacc.org/hmp/doc/ppAll_V35_map.txt",
-                          stringsAsFactors = FALSE,
-                          header = F,
-                          na.strings = NA)  
+sample_data_phylo <- import_qiime_sample_data("./v35_map_uniquebyPSN.txt.bz2")   # import Qiime-output sample data  
 
-head(mapping_hmp)
+head(sample_data_phylo) 
 
-colnames(mapping_hmp) <- mapping_hmp[1, ]  # set column names 
+colnames(sample_data_phylo)
 
-mapping_hmp2 <- mapping_hmp %>% 
-        rename(HMPBodySubsite = HMPBodySubsiteHMPBodySite) %>% 
-        rename(HMPBodySite = VisitNo) %>% 
-        rename(VisitNo = ncol(.)) %>% 
-        filter(!row_number() %in% c(1)) # remove the first row 
+```
 
-# view the final table 
-mapping_hmp2
 
+```{r body site}
+
+table(sample_data_phylo$HMPbodysubsite)   # check the distribution of sub-body sites  
+
+```
+
+Next, merge the sample data and previous phyloseq object into a self-consistent, phyloseq-class object, using `merge_phyloseq`. The resulting phyloseq object contains an OTU table, sample-data, and pylogenetic tree. 
+
+
+```{r merge phyloseq-class object}
+
+hmp_phylo_data <- merge_phyloseq(sample_data_phylo, hmp_phyloseq)  # merge sample data and previous phyloseq-class object  
 
 
 ```
-Explain key column names ... 
 
 
+Calculate alpha diversity by following the [vignettes](https://www.bioconductor.org/packages/release/bioc/vignettes/phyloseq/inst/doc/phyloseq-analysis.html#simple-exploratory-graphics)
+
+```{r filter phyloseq data}
+
+# remove OTU not present in any samples 
+hmp_filter <- prune_taxa(taxa_sums(hmp_phylo_data) >0, hmp_phylo_data) 
+
+# alpha diversity metrics of interest 
+alpha_metrics <- c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson") 
+
+# plot based on alpha-diversity of stool samples alone 
+
+plot_richness(hmp_filter,  # phyloseq object 
+              x = "HMPbodysubsite",  # a variable to map to the x-axis 
+              color = "HMPbodysubsite", 
+              measures = "Shannon")  + # calculate shannon  
+        geom_boxplot(alpha = 0.6)
+
+
+
+
+alpha_plot <- plot_richness(hmp_filter,  # phyloseq object 
+                            x = "sex",  # a variable to map to the x-axis 
+                            color = "HMPbodysubsite",
+                            measures = "Chao1") # calculate chao1 
+
+
+# plot with ggplot2 
+ggplot(data = alpha_plot$data,
+       aes(x= HMPbodysubsite, y=value, color = sex), 
+       alpha = 0,1) +
+        geom_boxplot() +
+        coord_flip()
+
+```
 
 
 
