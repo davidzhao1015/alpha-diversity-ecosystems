@@ -182,10 +182,6 @@ Convert the imported mapping file to phyloseq class `sample data` using `import_
 
 sample_data_phylo <- import_qiime_sample_data("./v35_map_uniquebyPSN.txt.bz2")   # import Qiime-output sample data  
 
-head(sample_data_phylo) 
-
-colnames(sample_data_phylo)
-
 ```
 
 
