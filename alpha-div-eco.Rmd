@@ -100,10 +100,12 @@ knitr::opts_chunk$set(fig.align = 'center',
 
 # load library necessary for this project
 
-library(tidyverse) 
 library(vegan)
 library(phyloseq) # import and process qimme output files 
-
+library(phyloseqCompanion)
+library(ggpubr)  
+library(picante)  # estimate Faith's PD 
+library(tidyverse) 
 
 ```
 
@@ -237,8 +239,162 @@ ggplot(data = alpha_plot$data,
 
 ```
 
+### Estimate alpha diversity metrics using estimate_richness function 
+
+The function, `estimate_richness` in the `phyloseq` package returns several commonly used alpha-diversity metrics:
+
+- Observed
+- Chao1
+- ACE
+- Shannon
+- Simpson
+- InvSimpson
+
+Next, calculate alpha-diversity metrics across different sub-body sites, referring to this [instruction](https://rpubs.com/lconteville/713954)
+
+```{r alpha-div estimate}
+
+# 18 sub-body sites 
+table(sample_data(hmp_filter)$HMPbodysubsite)
+
+```
 
 
+Referring to the below map sourced from the human microbiome project, I assigned sub-body sites to five (major) body sites. 
+
+![Where are body sites](Sub-bodysite-cartoon.jpg)
+
+
+```{r add-a-new-column}
+
+# add body_site to the sample data 
+# convert sample data to data frame for following manipulation 
+sample_data2 <- phyloseqCompanion::sample.data.frame(hmp_filter) 
+
+class(sample_data2) # check if data frame 
+
+sample_data2 <- sample_data2 %>% 
+  mutate(body_site = case_when(
+    HMPbodysubsite %in% c("Attached_Keratinized_gingiva",
+                          "Buccal_mucosa",
+                          "Hard_palate",
+                          "Palatine_Tonsils",
+                          "Saliva",
+                          "Subgingival_plaque",
+                          "Supragingival_plaque",
+                          "Throat",
+                          "Tongue_dorsum") ~ "oral_cavity",
+    HMPbodysubsite %in% c(
+      "Anterior_nares"
+    )~ "nasal_cavtiy",
+    HMPbodysubsite %in% c(
+      "Left_Antecubital_fossa",
+      "Right_Antecubital_fossa",
+      "Left_Retroauricular_crease",
+      "Right_Retroauricular_crease"
+    )~ "skin",
+    HMPbodysubsite %in% c(
+      "Stool"
+    ) ~ "gastrointestinal_tract",
+    HMPbodysubsite %in% c(
+      "Mid_vagina",
+      "Posterior_fornix",
+      "Vaginal_introitus"
+    ) ~ "urogenital_tract")
+    )
+
+# check the new column 
+table(sample_data2$body_site)
+
+
+# integrate the updated sample data into the phyloseq object 
+
+sample_data3 <- sample_data(sample_data2)
+
+hmp_filter2 <- merge_phyloseq(sample_data3, hmp_phyloseq)  
+
+
+```
+
+
+Estimate alpha-diversity measures by body sites 
+
+```{r alpha-diversity-5-body-sites, warning=FALSE}
+
+alpha_div_hmp <- phyloseq::estimate_richness(hmp_filter2, 
+                                             split = TRUE, 
+                                             measures = c("Observed", # remove Fisher since vegan implementation dose not work anymore  
+                                                          "Chao1", 
+                                                          "ACE", 
+                                                          "Shannon", 
+                                                          "Simpson", 
+                                                          "InvSimpson"))
+
+head(alpha_div_hmp) # view first rows 
+
+```
+
+Next, compare various alpha-diversity metrics across five body sites - Are alpha diversity different among body sites? 
+
+```{r shannon-anova}
+
+# check if normal distribution for Shannon 
+
+hist(alpha_div_hmp$Shannon, main = "Shannon index", xlab = "") 
+
+
+```
+
+
+It seems somewhat right-shewed. Run anova test to evaluate whether body sites are associated with Shannon diversity. 
+
+```{r shannon-anova}
+
+anova.sh <- aov(alpha_div_hmp$Shannon ~ sample_data(hmp_filter2)$body_site)  
+summary(anova.sh)
+
+```
+Run a post hoc test, Tukey honest significance difference (Tukey's HSD) after the ANOVA test. 
+
+```{r post-hoc-test}
+
+TukeyHSD(anova.sh)
+
+```
+
+
+Alternatively, run Kruskal-Wallis rank sum test on non-normal distributed dataset. 
+
+```{r kw-test}
+
+kruskal.test(alpha_div_hmp$Shannon ~ sample_data(hmp_filter2)$body_site) 
+
+```
+Get p-values of the Wilcoxon tests comparing each pair of groups. 
+
+```{r wilcoxon-test}
+
+pairwise.wilcox.test(alpha_div_hmp$Shannon, sample_data(hmp_filter2)$body_site, 
+                     p.adj = "bonf")  # multiple comparison adjustment - bonferroni 
+
+
+```
+
+
+### Estimate Faith's PD using picante R package 
+
+The package `picante` can estimate the phylogenetic aware metric, Faith's PD, which `phyloseq` package cannot do. 
+
+Apply `pd` function to OTU table and phylogenetic tree, following the [instruction](https://rdrr.io/rforge/picante/man/pd.html). The function `pd` returns a data frame of the PD and species (SR) values for all samples. 
+
+```{r faith's PD, warning=FALSE}
+
+faith_pd <- picante::pd(samp = t(otu_table(hmp_filter2)), 
+            tree = phy_tree(hmp_filter2), 
+            include.root = T)  
+
+ 
+```
 
 
 
