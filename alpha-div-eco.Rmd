@@ -394,7 +394,7 @@ Apply `pd` function to OTU table and phylogenetic tree, following the [instructi
 
 # head(faith_pd) 
 
-# As picante::pd() takes a long, long time to run, I export faith_pd as an external file for generatin html. 
+# As picante::pd() takes a long, long time to run, I export faith_pd as an external file for generating html. 
 
 
 # write.csv(faith_pd,
@@ -423,8 +423,10 @@ str(sample_data2)  # metadata
 
 # prepare faith's PD table 
 faith_pd_sub <- faith_pd %>% 
-  rownames_to_column("SampleID") %>% 
+  # rownames_to_column("SampleID") %>% 
   select(-SR)
+
+faith_pd_sub$SampleID <- as.character(faith_pd_sub$SampleID)
 
 
 # prepare pyloseq-output alpha diversities 
@@ -539,8 +541,6 @@ Use `rcorr` function in `Hmisc` package following the instruction [here](http://
 
 head(merg_alpha)  # original data frame that stores all alpha diversities 
 
-
-
 ```
 
 
@@ -600,12 +600,13 @@ Plot the Spearman-based correlation matrix using `corrplot` function in `corrplo
 ```{r plot corr, collapse=TRUE, warning=FALSE}
 
 # Insignificant correlations are leaved blank
-corrplot(corr_alpha$r, 
-         type="upper", 
-         order="hclust", 
-         p.mat = corr_alpha$P, 
-         sig.level = 0.01, 
-         insig = "blank")  
+
+corrplot(corr_alpha$r,
+         type="upper",
+         order="original")  
+         # p.mat = p_corr,
+         # sig.level = 0.05,
+         # insig = "blank")
 
 ```
 
