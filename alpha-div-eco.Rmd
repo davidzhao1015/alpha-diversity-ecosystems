@@ -99,13 +99,15 @@ knitr::opts_chunk$set(fig.align = 'center',
 ```{r library, warning=FALSE, collapse=TRUE}
 
 # load library necessary for this project
-
+library(tidyverse)   
 library(vegan)
 library(phyloseq) # import and process qimme output files 
 library(phyloseqCompanion)
 library(ggpubr)  
 library(picante)  # estimate Faith's PD 
-library(tidyverse) 
+library(Hmisc)  # calculate correlation values and p 
+library(corrplot) # draw correlation matrix 
+library(PerformanceAnalytics) 
 
 ```
 
@@ -141,8 +143,6 @@ otu_v35_final_hmp <- read.delim(gzfile("./otu_table_psn_v35.txt.gz"),
                                 header = FALSE)  # whether the first line describe the column names 
 
 
-head(otu_v35_final_hmp[,ncol(otu_v35_final_hmp)]) 
-
 ```
 
 
@@ -167,7 +167,7 @@ ph.tree_hmp_phylo <- gzfile("./rep_set_v35.tre.gz")
 hmp_phyloseq <- import_qiime(otufilename = otu_hmp_phylo,
                              treefilename = ph.tree_hmp_phylo)
 
-hmp_phyloseq  # phylogenetic object 
+hmp_phyloseq  # phylogenetic object  
 
 
 ```
@@ -199,7 +199,6 @@ Next, merge the sample data and previous phyloseq object into a self-consistent,
 
 hmp_phylo_data <- merge_phyloseq(sample_data_phylo, hmp_phyloseq)  # merge sample data and previous phyloseq-class object  
 
-
 ```
 
 
@@ -222,8 +221,6 @@ plot_richness(hmp_filter,  # phyloseq object
         geom_boxplot(alpha = 0.6)
 
 
-
-
 alpha_plot <- plot_richness(hmp_filter,  # phyloseq object 
                             x = "sex",  # a variable to map to the x-axis 
                             color = "HMPbodysubsite",
@@ -235,7 +232,7 @@ ggplot(data = alpha_plot$data,
        aes(x= HMPbodysubsite, y=value, color = sex), 
        alpha = 0,1) +
         geom_boxplot() +
-        coord_flip()
+        coord_flip() 
 
 ```
 
@@ -255,7 +252,7 @@ Next, calculate alpha-diversity metrics across different sub-body sites, referri
 ```{r alpha-div estimate}
 
 # 18 sub-body sites 
-table(sample_data(hmp_filter)$HMPbodysubsite)
+table(sample_data(hmp_filter)$HMPbodysubsite) 
 
 ```
 
@@ -385,16 +382,219 @@ pairwise.wilcox.test(alpha_div_hmp$Shannon, sample_data(hmp_filter2)$body_site,
 
 The package `picante` can estimate the phylogenetic aware metric, Faith's PD, which `phyloseq` package cannot do. 
 
-Apply `pd` function to OTU table and phylogenetic tree, following the [instruction](https://rdrr.io/rforge/picante/man/pd.html). The function `pd` returns a data frame of the PD and species (SR) values for all samples. 
+Apply `pd` function to OTU table and phylogenetic tree, following the [instruction](https://rdrr.io/rforge/picante/man/pd.html). The function `pd` returns a data frame of the `PD` and species (`SR`) values for all samples. 
 
 ```{r faith's PD, warning=FALSE}
 
 faith_pd <- picante::pd(samp = t(otu_table(hmp_filter2)), 
-            tree = phy_tree(hmp_filter2), 
-            include.root = T)  
+                        tree = phy_tree(hmp_filter2), 
+                        include.root = F)  # tree need not rooted, but in case of single-species samples the PD will be equal to NA 
 
- 
 ```
+
+### Tabulate descriptive statsitics of five alpha diversity metrics 
+
+```{r tabulate-stats}
+
+str(faith_pd)  # PD data frame 
+
+str(alpha_div_hmp)  # other alpha diversities 
+
+str(sample_data2)  # metadata 
+
+```
+
+
+```{r merge-dataframes}
+
+# prepare faith's PD table 
+faith_pd_sub <- faith_pd %>% 
+  rownames_to_column("SampleID") %>% 
+  select(-SR)
+
+
+# prepare pyloseq-output alpha diversities 
+alpha_div_hmp_sub <- alpha_div_hmp %>% 
+  rownames_to_column("SampleID") %>% 
+  dplyr::mutate(SampleID2 = str_sub(SampleID, 2)) %>% 
+  select(-SampleID) %>% 
+  rename(SampleID = SampleID2) %>% 
+  select(SampleID, Chao1, se.chao1, Shannon, Simpson, InvSimpson)
+
+
+# prepare metadata 
+sample_data_sub <- sample_data2 %>% 
+  select(SampleID = X.SampleID, body_site) 
+
+sample_data_sub$SampleID <- as.character(sample_data_sub$SampleID)  # convert to character variable 
+
+
+# merge three the above tables by Sample ID using full merge
+
+merg_alpha <- sample_data_sub %>% 
+  dplyr::full_join(alpha_div_hmp_sub, by= "SampleID") %>% 
+  dplyr::full_join(faith_pd_sub, by= "SampleID")
+
+head(merg_alpha) # view first rows 
+
+
+```
+
+Calculate summary statistics for five alpha diversities with body site groups 
+
+```{r summary-stats}
+
+summ_alpha <- merg_alpha %>% 
+  group_by(body_site) %>% 
+  dplyr::summarize(chao_ave = mean(Chao1),  # average for Chao1 
+                   chao_std = sd(Chao1), # standard deviations for Chao1  
+                   shannon_ave = mean(Shannon),  # Shannon average 
+                   shannon_std = sd(Shannon),  # Shannon std 
+                   simpson_ave = mean(Simpson),  # Simpson average 
+                   simpson_std = sd(Simpson),  # Simpson std 
+                   invsimp_ave = mean(InvSimpson),  # InvSimpson average 
+                   invsimp_std = sd(InvSimpson), # InvSimpson std 
+                   pd_ave = mean(PD),  # PD average 
+                   pd_std = sd(PD),  # PD std 
+                   sub_size = n())  # group sizes 
+
+summ_alpha_dig <- summ_alpha 
+
+summ_alpha_dig[,-1] <- apply(summ_alpha_dig[,-1], 2, function(x) round(x, 2))  # two decimal digits 
+
+summ_alpha_dig # print the resulting table  
+  
+```
+
+Draw bar plots with error bars to illustrate the summary stats. 
+
+Refer to the instruction [here](https://stringr.tidyverse.org/reference/str_extract.html) to set regular expression for `str_extract` function. 
+
+```{r barplot-error}
+
+# prepare data 
+summ_alpha_dig2 <- summ_alpha_dig %>% 
+  tidyr::gather(key = "alpha_metrics", 
+                value = "value", 
+                -c("body_site", 
+                   "sub_size")) %>%
+  dplyr::mutate(stats_metrics = str_sub(alpha_metrics, -3)) %>% 
+  dplyr::mutate(alpha_metric = str_extract(alpha_metrics, "[a-z]+"))  %>% 
+  select(-alpha_metrics) %>% 
+  tidyr::spread(key = "stats_metrics", value = "value") 
+  
+
+summ_alpha_dig2  # print the table 
+
+```
+
+```{r barplot-error-bar, warning=FALSE}
+
+summ_alpha_dig3 <- summ_alpha_dig2 %>% 
+  mutate(Ymax = ave + std) %>% 
+  mutate(Ymin = ave - std)
+
+
+ggplot(summ_alpha_dig3, 
+       aes(x = alpha_metric, y = ave, fill = body_site)) + 
+  geom_col(position = "dodge") +
+  geom_errorbar(data = summ_alpha_dig3,
+                position = "dodge",
+                aes(ymax= Ymax, 
+                ymin = Ymin),
+                na.rm = T,
+                size = 0.1,
+                linetype =1,
+                color = "gray60") +  
+  facet_wrap(vars(alpha_metric),
+             scales = "free") 
+  
+
+
+
+
+```
+
+
+### Correlaion matrix between five alpha diveristies 
+
+Use `rcorr` function in `Hmisc` package following the instruction [here](http://www.sthda.com/english/wiki/correlation-matrix-a-quick-start-guide-to-analyze-format-and-visualize-a-correlation-matrix-using-r-software). 
+
+
+```{r cor-analysis}
+
+head(merg_alpha)  # original data frame that stores all alpha diversities 
+
+
+
+```
+
+
+```{r, warning=FALSE} 
+
+chart.Correlation(merg_alpha[,-c(1,2,4)], histogram=TRUE, pch=19) 
+
+```
+
+```{r}
+# prepare matrix 
+
+merg_alpha_corr_mat <- merg_alpha %>% 
+  select(-body_site, -se.chao1, -SampleID)  %>% 
+  as.matrix()
+
+rownames(merg_alpha_corr_mat) <- merg_alpha$SampleID
+
+
+# use Hmisc package to implement correlation analysis 
+
+corr_alpha <- rcorr(merg_alpha_corr_mat, type = "spearman")   
+
+corr_alpha 
+
+
+```
+
+```{r extract p and rho} 
+
+# ++++++++++++++++++++++++++++
+# flattenCorrMatrix
+# ++++++++++++++++++++++++++++
+# cormat : matrix of the correlation coefficients
+# pmat : matrix of the correlation p-values
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+
+```
+
+
+```{r save-data-frame}
+
+flattenCorrMatrix(corr_alpha$r, corr_alpha$P) 
+
+```
+
+Plot the Spearman-based correlation matrix using `corrplot` function in `corrplot` package following the online [guide](http://www.sthda.com/english/wiki/correlation-matrix-a-quick-start-guide-to-analyze-format-and-visualize-a-correlation-matrix-using-r-software). 
+
+```{r plot corr, collapse=TRUE, warning=FALSE}
+
+# Insignificant correlations are leaved blank
+corrplot(corr_alpha$r, 
+         type="upper", 
+         order="hclust", 
+         p.mat = corr_alpha$P, 
+         sig.level = 0.01, 
+         insig = "blank")  
+
+```
+
 
 
 
