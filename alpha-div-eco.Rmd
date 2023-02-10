@@ -333,7 +333,7 @@ head(alpha_div_hmp) # view first rows
 
 Next, compare various alpha-diversity metrics across five body sites - Are alpha diversity different among body sites? 
 
-```{r shannon-anova}
+```{r}
 
 # check if normal distribution for Shannon 
 
@@ -384,11 +384,25 @@ The package `picante` can estimate the phylogenetic aware metric, Faith's PD, wh
 
 Apply `pd` function to OTU table and phylogenetic tree, following the [instruction](https://rdrr.io/rforge/picante/man/pd.html). The function `pd` returns a data frame of the `PD` and species (`SR`) values for all samples. 
 
-```{r faith's PD, warning=FALSE}
+```{r faith PD, warning=FALSE}
 
-faith_pd <- picante::pd(samp = t(otu_table(hmp_filter2)), 
-                        tree = phy_tree(hmp_filter2), 
-                        include.root = F)  # tree need not rooted, but in case of single-species samples the PD will be equal to NA 
+
+
+# faith_pd <- picante::pd(samp = t(otu_table(hmp_filter2)), 
+#                         tree = phy_tree(hmp_filter2), 
+#                         include.root = F)  # tree need not rooted, but in case of single-species samples the PD will be equal to NA 
+
+# head(faith_pd) 
+
+# As picante::pd() takes a long, long time to run, I export faith_pd as an external file for generatin html. 
+
+
+# write.csv(faith_pd,
+#           file = "faith_pd_HMP.csv") 
+
+faith_pd <- read.csv("faith_pd_HMP.csv", header = T,
+                     col.names = c("SampleID", "PD", "SR")) 
+
 
 ```
 
