@@ -92,6 +92,12 @@ knitr::opts_chunk$set(fig.align = 'center',
 
 ## Project outline
 
+1. Estimate five alpha diversities across major body sites 
+2. Compare alpha diversities by body sites + visualization + interpretation 
+3. Correlation between various alpha diversities + visualization + interpretation 
+4. Multivariate regression on alpha diversities and environmental variables + visualization + interpretation 
+
+
 ## R codes
 
 ### Load necessary libraries
@@ -108,6 +114,7 @@ library(picante)  # estimate Faith's PD
 library(Hmisc)  # calculate correlation values and p 
 library(corrplot) # draw correlation matrix 
 library(PerformanceAnalytics) 
+library(zCompositions) # treat missing and zero values 
 
 ```
 
@@ -527,8 +534,6 @@ ggplot(summ_alpha_dig3,
   
 
 
-
-
 ```
 
 
@@ -609,6 +614,128 @@ corrplot(corr_alpha$r,
          # insig = "blank")
 
 ```
+
+The correlation matrix plot illustrate that all five alpha diversity metrics are significantly positively associated with each other (p < 0.05), yet with various strength (according to rho). In particular, non-phylogenetic metric, Chao1 and phylogenetic Faith's PD is the most closely correlated pair among others; Shannon is the second most closely associated with Faith's PD. 
+
+
+
+### Multivariate regression between the alpha diversity and environmental variables 
+
+Use MasLin2 package to evaluate impact of specific environmental variables on the richness or evenness of bacterial communities.  
+
+The covariables present in the metadata includes `visitno`, `sex`, `RUNCENTER`, and `body_site`. 
+
+```{r metadata covariable}
+
+dplyr::glimpse(sample_data2) # structure of the metadata 
+
+table(sample_data2$RUNCENTER)  # run center distribution 
+
+```
+
+Check whether zero values/ missing values are present in covariables. 
+
+Treat zeroness with proper method, with referring to the `Chap 10.1.4.3` "How to deal zeros in compositional data analysis" in the Book, Statistical Analysis of Microbiome Data with R. Try to use `zComposition` package to treat zero values in categorical variables. 
+
+
+```{r check zero, collapse=TRUE}
+
+# subset covariables of interest 
+sample_data2_cov <- sample_data2  %>%
+  dplyr::select(SampleID = X.SampleID, visitno, sex, RUNCENTER, body_site) 
+
+# apply zPatterns function to find and display missing and zero values 
+zPatterns(sample_data2_cov,
+          label = NA, 
+          plot= TRUE)       
+
+```
+
+The result of the function `zPatterns` indicated that there is no missing and zero values in the four covariables and sample ID. 
+
+
+
+
+Check if the four covariables are highly correlated. As all covariables are categorical, I apply the [chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test) to evaluate in the contingency tables of covariables when sample size large. 
+
+Null hypothesis is the row and the column variables of the contingency table are independent; alternative hypothesis is row and column variables are dependent. Note that the assumption of chi-squared test is that the expected frequency of any cell is at least 5. 
+
+Refer to [sthda.com](http://www.sthda.com/english/wiki/chi-square-test-of-independence-in-r) for R coding to implement chi-squared test.
+
+
+```{r highly-corr}
+
+# convert covariables of interest to categorical 
+
+table(sample_data2_cov$visitno)  # contingency table for visit no - three levels 1, 2 and 3
+
+table(sample_data2_cov$sex) # two levels female and male 
+
+table(sample_data2_cov$RUNCENTER)  # four levels - BCM, BI, JCVI, and WUGC 
+
+# accumulate sub-groups into a single major group 
+sample_data2_cov <- sample_data2_cov %>% 
+  mutate(runcenter = case_when(RUNCENTER %in% c("BCM", "BCM,BI", "BCM,JCVI", "BCM,WUGC")~"BCM",
+                               RUNCENTER %in% c("BI", "BI,BCM")~"BI",
+                               RUNCENTER %in% c("JCVI", "JCVI,BI", "JCBI,WUGC")~"JCVI",
+                               RUNCENTER %in% c("WUGC", "WUGC,BCM","WUGC,JCVI")~"WUGC"))
+
+table(sample_data2_cov$body_site) # five levels - gastrointestinal tract, nasal cavity, oral cavity, skin and urogenital tract 
+
+
+
+# convert to factor variables 
+sample_data2_cov2 <- sample_data2_cov %>% 
+  dplyr::select(-SampleID) %>% 
+  dplyr::select(-RUNCENTER) %>% 
+  dplyr::mutate(visitno = factor(visitno)) %>% 
+  mutate(sex = factor(sex, levels = c("female", "male"))) %>% 
+  mutate(body_site = factor(body_site)) %>% 
+  mutate(runcenter = factor(runcenter))
+```
+
+
+
+Refer to the [Stack Overflow post](https://stackoverflow.com/questions/60679649/apply-chi-squared-test-in-r-on-more-than-5-variables-and-find-the-p-values) for R coding to implement multivariate chi-squared test. 
+
+```{r chisquared test}
+  
+# use ... function of ... package to implement chi-square test 
+
+chisq.test(sample_data2_cov2$visitno, sample_data2_cov2$runcenter)
+
+
+
+```
+
+
+```{r plot}
+# plot significant correlations with heatmap 
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
