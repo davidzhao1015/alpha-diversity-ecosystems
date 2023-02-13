@@ -428,12 +428,12 @@ str(sample_data2)  # metadata
 ```
 
 
-```{r merge-dataframes}
+```{r merge-dataframes, warning=FALSE}
 
 # prepare faith's PD table 
 faith_pd_sub <- faith_pd %>% 
   # rownames_to_column("SampleID") %>% 
-  select(-SR)
+  dplyr::select(-SR)
 
 faith_pd_sub$SampleID <- as.character(faith_pd_sub$SampleID)
 
@@ -442,14 +442,14 @@ faith_pd_sub$SampleID <- as.character(faith_pd_sub$SampleID)
 alpha_div_hmp_sub <- alpha_div_hmp %>% 
   rownames_to_column("SampleID") %>% 
   dplyr::mutate(SampleID2 = str_sub(SampleID, 2)) %>% 
-  select(-SampleID) %>% 
+  dplyr::select(-SampleID) %>% 
   rename(SampleID = SampleID2) %>% 
-  select(SampleID, Chao1, se.chao1, Shannon, Simpson, InvSimpson)
+  dplyr::select(SampleID, Chao1, se.chao1, Shannon, Simpson, InvSimpson)
 
 
 # prepare metadata 
 sample_data_sub <- sample_data2 %>% 
-  select(SampleID = X.SampleID, body_site) 
+  dplyr::select(SampleID = X.SampleID, body_site) 
 
 sample_data_sub$SampleID <- as.character(sample_data_sub$SampleID)  # convert to character variable 
 
@@ -505,7 +505,7 @@ summ_alpha_dig2 <- summ_alpha_dig %>%
                    "sub_size")) %>%
   dplyr::mutate(stats_metrics = str_sub(alpha_metrics, -3)) %>% 
   dplyr::mutate(alpha_metric = str_extract(alpha_metrics, "[a-z]+"))  %>% 
-  select(-alpha_metrics) %>% 
+  dplyr::select(-alpha_metrics) %>% 
   tidyr::spread(key = "stats_metrics", value = "value") 
   
 
@@ -518,7 +518,6 @@ summ_alpha_dig2  # print the table
 summ_alpha_dig3 <- summ_alpha_dig2 %>% 
   mutate(Ymax = ave + std) %>% 
   mutate(Ymin = ave - std)
-
 
 ggplot(summ_alpha_dig3, 
        aes(x = alpha_metric, y = ave, fill = body_site)) + 
@@ -546,7 +545,7 @@ Use `rcorr` function in `Hmisc` package following the instruction [here](http://
 
 ```{r cor-analysis}
 
-head(merg_alpha)  # original data frame that stores all alpha diversities 
+head(merg_alpha)  # original data frame that stores all alpha diversities  
 
 ```
 
@@ -554,21 +553,20 @@ head(merg_alpha)  # original data frame that stores all alpha diversities
 ```{r, warning=FALSE} 
 
 chart.Correlation(merg_alpha[,-c(1,2,4)], histogram=TRUE, pch=19) 
-
+ 
 ```
 
 ```{r}
 # prepare matrix 
 
 merg_alpha_corr_mat <- merg_alpha %>% 
-  select(-body_site, -se.chao1, -SampleID)  %>% 
+  dplyr::select(-body_site, -se.chao1, -SampleID)  %>% 
   as.matrix()
 
 rownames(merg_alpha_corr_mat) <- merg_alpha$SampleID
 
 
 # use Hmisc package to implement correlation analysis 
-
 corr_alpha <- rcorr(merg_alpha_corr_mat, type = "spearman")   
 
 corr_alpha 
@@ -598,7 +596,7 @@ flattenCorrMatrix <- function(cormat, pmat) {
 
 ```{r save-data-frame}
 
-flattenCorrMatrix(corr_alpha$r, corr_alpha$P) 
+flattenCorrMatrix(corr_alpha$r, corr_alpha$P)  
 
 ```
 
@@ -613,7 +611,7 @@ corrplot(corr_alpha$r,
          order="original")  
          # p.mat = p_corr,
          # sig.level = 0.05,
-         # insig = "blank")
+         # insig = "blank") 
 
 ```
 
@@ -647,9 +645,9 @@ sample_data2_cov <- sample_data2  %>%
   dplyr::select(SampleID = X.SampleID, visitno, sex, RUNCENTER, body_site) 
 
 # apply zPatterns function to find and display missing and zero values 
-zPatterns(sample_data2_cov,
-          label = NA, 
-          plot= TRUE)       
+# zPatterns(sample_data2_cov,
+#           label = NA, 
+#           plot= TRUE)       
 
 ```
 
@@ -736,7 +734,7 @@ Check missing/zero values in dependent variables using `zCompositions` package.
 
 zPatterns(merg_alpha_corr_df,
           label = NA, 
-          plot= TRUE)  
+          plot= TRUE)   
 
 ```
 Missing values are present in one dependent variable, `PD`. 
@@ -781,7 +779,7 @@ dim(alpha_cov_df)  # 4743 observations
 
 ```{r variable names}
 
-names(alpha_cov_df)
+names(alpha_cov_df) 
 
 ```
 
@@ -817,16 +815,6 @@ The model coefficients tell us that,
 Overall, four covariables collectively explain 47.35% variation of alpha diversity, Chao1. 
 
 
-
-
-Use `broom` package to build model across multiple variables ... 
-
-```{r broom mod}
-
-
-
-
-```
 
 
 
