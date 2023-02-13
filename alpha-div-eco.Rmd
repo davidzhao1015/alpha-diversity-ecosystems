@@ -114,7 +114,9 @@ library(picante)  # estimate Faith's PD
 library(Hmisc)  # calculate correlation values and p 
 library(corrplot) # draw correlation matrix 
 library(PerformanceAnalytics) 
-library(zCompositions) # treat missing and zero values 
+library(zCompositions) # treat missing and zero values  
+library(caret)  # machine learning package including checking highly correlation variables 
+library(lares)  # compute and plot correlations 
 
 ```
 
@@ -695,40 +697,136 @@ sample_data2_cov2 <- sample_data2_cov %>%
 ```
 
 
+Apply `lares` package to compute and plot correlations between categorical variables. View this [web site](https://statsandr.com/blog/correlogram-in-r-how-to-highlight-the-most-correlated-variables-in-a-dataset/) for R codes and plotting examples. 
 
-Refer to the [Stack Overflow post](https://stackoverflow.com/questions/60679649/apply-chi-squared-test-in-r-on-more-than-5-variables-and-find-the-p-values) for R coding to implement multivariate chi-squared test. 
+```{r chisquared test, warning=FALSE} 
 
-```{r chisquared test}
+lares::corr_cross(sample_data2_cov2,  # name of dataset 
+                  max_pvalue = 0.05,  # display only significant correlation (at 5% level)
+                  top = 10) # display top 10 couples of variables (by correlation coefficient) 
+
+```
+
+The sex (`sex`) and urogenital tract (`body_site`) are correlated with low-to-medium strength while other pair-wise correlations are low-to-weak. 
+
+
+
+Build multiple linear regression between alpha diversities and four covariables.   
+
+```{r linear-regression}
+
+# alpha diversities data frame 
+head(merg_alpha_corr_mat)
+
+
+# merge covariables and the alpha diversities 
+# alpha diversity data frame 
+merg_alpha_corr_df <- merg_alpha_corr_mat %>% 
+  as.data.frame() %>% 
+  rownames_to_column("SampleID") 
+
+dim(merg_alpha_corr_df)  # 4743 observations 
+
+```
+
+
+Check missing/zero values in dependent variables using `zCompositions` package. 
+
+```{r check NA in depedent variables}
+
+zPatterns(merg_alpha_corr_df,
+          label = NA, 
+          plot= TRUE)  
+
+```
+Missing values are present in one dependent variable, `PD`. 
+
+
+Check visually whether dependent variables normally distribute. 
+
+```{r normal distribution}
+
+merg_alpha_corr_df %>% 
+  gather(key = "alpha_metrics", value = "values", -SampleID) %>% 
+  ggplot(aes(x = values, y =..density..))+
+  geom_histogram(stat = "bin", binwidth = 1, alpha = 0.5) +
+  facet_wrap(vars(alpha_metrics),
+             scales = "free") +
+  geom_density(color = "blue",
+               linewidth = 1,
+               alpha = 0.1)
+
+``` 
+
+All five alpha diversities seem shewed to various degree. Use data transformation methods to generate normally distributed dependent variables. The website [GUSTA ME](https://sites.google.com/site/mb3gustame/reference/transformations) provides a collection of common data transformation methods, including logarithmic, square root, power transformations, and box-cox. 
+
+
+```{r}
+
+# covariables data frame 
+sample_data2_cov2_df <- sample_data2_cov2 %>% 
+  rownames_to_column("SampleID") 
+
+dim(sample_data2_cov2_df)  # 4743 observations 
+
+
+# join two data frames by sample ID  
+alpha_cov_df <- merg_alpha_corr_df %>% 
+  full_join(sample_data2_cov2_df, by= "SampleID")  
+
+dim(alpha_cov_df)  # 4743 observations 
   
-# use ... function of ... package to implement chi-square test 
+```
 
-chisq.test(sample_data2_cov2$visitno, sample_data2_cov2$runcenter)
+
+```{r variable names}
+
+names(alpha_cov_df)
+
+```
+
+Dependent variables: 
+`Chao1`
+`Shannon`
+`Simpson`
+`InvSimpson`
+`PD`
+
+Independent variables: 
+`visitno`
+`sex`
+`body_site` 
+`runcenter`
+
+```{r linear mod}
+
+mod_chao1 <- lm(Chao1 ~  body_site + visitno + sex + runcenter,
+   data = alpha_cov_df,
+   na.action =  na.omit # omit NA 
+   )
+
+summary(mod_chao1)  # coefficients and significance of the resulting model 
+
+```
+The model coefficients tell us that, 
+- Body sites are associated with alpha diversity, Chao1. Oral cavity has highest diversity compared to other niches. 
+- Visit number (sampling time) is linked to alpha diversity, Chao1.  
+- Run centers are associated with alpha diversity, Chao1, suggesting that technical variations exist in the data set. 
+- Sex is linked to alpha diversity, Chao1, male has higher alpha diversity than female does. 
+
+Overall, four covariables collectively explain 47.35% variation of alpha diversity, Chao1. 
+
+
+
+
+Use `broom` package to build model across multiple variables ... 
+
+```{r broom mod}
+
 
 
 
 ```
-
-
-```{r plot}
-# plot significant correlations with heatmap 
-
-
-
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
