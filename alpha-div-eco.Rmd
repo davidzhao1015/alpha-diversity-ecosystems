@@ -9,7 +9,7 @@ knit: (function(inputFile, encoding) {
                         output_file=file.path(dirname(inputFile), out_dir, 'index.html'))})
 output:
   html_document:
-    # theme: cosmo
+    theme: leonids 
     highlight: pygments
     df_print: paged
     toc: TRUE
@@ -25,55 +25,55 @@ editor_options:
 bibliography: references.bib
 ---
 
-<html>
+<!-- <html> -->
 
-<head>
+<!-- <head> -->
 
-```{=html}
-<style>
+<!-- ```{=html} -->
+<!-- <style> -->
 
-h1{
- color: #055C9D;
- font-family: Georgia;
- font-size: 200%
-}
+<!-- h1{ -->
+<!--  color: #055C9D; -->
+<!--  font-family: Georgia; -->
+<!--  font-size: 200% -->
+<!-- } -->
 
 
-h2{
- color: #055C9D;
- font-family: helvetica;
- font-size: 150%
-}
+<!-- h2{ -->
+<!--  color: #055C9D; -->
+<!--  font-family: helvetica; -->
+<!--  font-size: 150% -->
+<!-- } -->
 
-h3{
- color: #055C9D;  
- font-family: helvetica;
- font-size: 120%; 
-}
+<!-- h3{ -->
+<!--  color: #055C9D;   -->
+<!--  font-family: helvetica; -->
+<!--  font-size: 120%;  -->
+<!-- } -->
 
-p {
- color: #333333;
- font-family: helvetica;
- font-size: 100%;
-}
+<!-- p { -->
+<!--  color: #333333; -->
+<!--  font-family: helvetica; -->
+<!--  font-size: 100%; -->
+<!-- } -->
 
-.blackbox {
-  padding: 1em;
-  background: green;
-  color: black;
-  border: 2px solid orange;
-  border-radius: 10px;
-}
+<!-- .blackbox { -->
+<!--   padding: 1em; -->
+<!--   background: green; -->
+<!--   color: black; -->
+<!--   border: 2px solid orange; -->
+<!--   border-radius: 10px; -->
+<!-- } -->
 
-.center {
-  text-align: center;
-}
+<!-- .center { -->
+<!--   text-align: center; -->
+<!-- } -->
 
-</style>
-```
-</head>
+<!-- </style> -->
+<!-- ``` -->
+<!-- </head> -->
 
-</html>
+<!-- </html> -->
 
 ```{r setup, include = FALSE}
 # set options for the entire document 
