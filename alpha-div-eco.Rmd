@@ -8,9 +8,9 @@ knit: (function(inputFile, encoding) {
                         encoding=encoding,
                         output_file=file.path(dirname(inputFile), out_dir, 'index.html'))})
 output:
-  html_document:
+  prettydoc::html_pretty: 
     theme: leonids 
-    highlight: pygments
+    highlight: github
     df_print: paged
     toc: TRUE
     toc_float: TRUE
