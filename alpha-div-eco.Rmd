@@ -105,6 +105,9 @@ knitr::opts_chunk$set(fig.align = 'center',
 ```{r library, warning=FALSE, collapse=TRUE}
 
 # load library necessary for this project
+# install.package("ggstatsplot", dependencies = TRUE) 
+library(ggstatsplot)  # forest plot for model output   
+
 library(tidyverse)   
 library(vegan)
 library(phyloseq) # import and process qimme output files 
@@ -117,6 +120,9 @@ library(PerformanceAnalytics)
 library(zCompositions) # treat missing and zero values  
 library(caret)  # machine learning package including checking highly correlation variables 
 library(lares)  # compute and plot correlations 
+library(parameters)  # tabulate model summary 
+library(gt) # get a compact and comprehensive summary table in HTML file 
+
 
 ```
 
@@ -798,21 +804,174 @@ Independent variables:
 
 ```{r linear mod}
 
+# Chao1 model 
 mod_chao1 <- lm(Chao1 ~  body_site + visitno + sex + runcenter,
    data = alpha_cov_df,
    na.action =  na.omit # omit NA 
    )
 
-summary(mod_chao1)  # coefficients and significance of the resulting model 
+# summary(mod_chao1)  # coefficients and significance of the resulting model 
+
+
+
+#  Shannon mod 
+mod_shann <- lm(Shannon ~  body_site + visitno + sex + runcenter,
+   data = alpha_cov_df,
+   na.action =  na.omit # omit NA 
+   ) 
+
+
+# Simpson mod 
+mod_simpson <- lm(Simpson ~  body_site + visitno + sex + runcenter,
+   data = alpha_cov_df,
+   na.action =  na.omit # omit NA 
+   ) 
+
+
+# Inverse Simpson mod 
+mod_invsimpson <- lm(InvSimpson ~  body_site + visitno + sex + runcenter,
+   data = alpha_cov_df,
+   na.action =  na.omit # omit NA 
+   ) 
+
+
+# PD mod 
+mod_pd <- lm(PD ~  body_site + visitno + sex + runcenter,
+   data = alpha_cov_df,
+   na.action =  na.omit # omit NA 
+   ) 
+
 
 ```
+
 The model coefficients tell us that, 
 - Body sites are associated with alpha diversity, Chao1. Oral cavity has highest diversity compared to other niches. 
 - Visit number (sampling time) is linked to alpha diversity, Chao1.  
 - Run centers are associated with alpha diversity, Chao1, suggesting that technical variations exist in the data set. 
 - Sex is linked to alpha diversity, Chao1, male has higher alpha diversity than female does. 
 
-Overall, four covariables collectively explain 47.35% variation of alpha diversity, Chao1. 
+Overall, four covariables collectively explain 47.35% variation of average alpha diversity, Chao1. 
+
+
+#### Visualize and tabulate model output 
+
+The post in the blog [Stats and R](https://statsandr.com/blog/multiple-linear-regression-made-simple/#coefficient-of-determination-r2) provides a few R packages to visualize or tabulate linear models, including, 
+
+- `ggstatsplot` 
+- `ggstance` 
+- `parameters` (tabulate)
+- `gt` (tabulate) 
+- `equationmatic` (extract model's equation) 
+- `report` (automatic reporting) 
+
+In the report, I use `ggstatsplot` to visualize while use `gt` to tabulate the model output for illustration purpose. 
+
+```{r viz model}
+
+# forest plot to show model output in detailed
+ggstatsplot::ggcoefstats(mod_chao1)   
+
+```
+
+In this plot:
+
+- when the solid line does not cross the vertical dashed line, the coefficient is different from 0 at the 5% significance level
+- a point to the right or to the left of the vertical dashed line indicates positive or negative associations between two variables 
+- the more extreme the point, the stronger the relationship 
+
+
+Next, tabulate the model output in a HTML-friendly manner using the packages `gt` and `parameters`
+
+```{r tabulate mode output}
+
+print_html(model_parameters(mod_chao1, summary = TRUE))  
+
+
+
+```
+
+#### Predict Chao 1 from four variables 
+
+
+```{r pred chao1}
+
+
+names(alpha_cov_df)
+
+
+# create a new data 
+new_df <- alpha_cov_df[1:3,7:10] 
+
+
+# predict new individuals with 95% prediction interval 
+predict(mod_chao1,
+        new = new_df,
+        interval = "prediction",
+        level = .95) 
+
+
+```
+
+
+### Diagnose the models 
+
+Check up whether regression assumption hold true. The website [sthda](http://www.sthda.com/english/articles/39-regression-model-diagnostics/161-linear-regression-assumptions-and-diagnostics-in-r-essentials/#regression-assumptions) provides detailed instructions on diagnosing models. 
+
+Regression assumptions:
+- linearity of the data 
+- normality of residuals 
+- homogeneity of residuals variance 
+- independence of residuals error terms 
+
+All these assumptions and potential problems can be checked by producing some diagnostic plots visualizing the residual errors. 
+
+
+```{r}
+
+mod_chao1_diag_metrics <- broom::augment(mod_chao1)
+
+head(mod_chao1_diag_metrics)
+
+```
+
+
+```{r dignose mod}
+
+# diagnose plots for chao1 model 
+par(mfrow = c(2,2))
+
+plot(mod_chao1)
+
+
+```
+
+
+Look more closely at the Cook's distance to identify any influencer points. 
+
+```{r cook distance}
+
+plot(mod_chao1, 4,
+     id.n=5) # lable top most extreme values 
+
+plot(mod_chao1, 5)
+
+```
+
+
+```{r }
+
+# look further the top extreme values 
+mod_chao1_diag_metrics %>% 
+  top_n(3, wt= .cooksd)
+
+```
+
+
+
+
+
+
+
 
 
 
